@@ -159,6 +159,17 @@ spec:
                   `remote`. More information: - https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings#execution-mode'
                 pattern: ^(agent|local|remote)$
                 type: string
+              initialRun:
+                default: false
+                description: 'Define whether the workspace should start a run when
+                  created Default: `false`.'
+                type: boolean
+              initialRunType:
+                default: plan
+                description: 'Define if the initial run should be an apply or plan.
+                  Must be one of the following values: `apply`, `plan`. Default: `plan`.'
+                pattern: ^(apply|plan)$
+                type: string
               name:
                 description: Workspace name.
                 minLength: 1

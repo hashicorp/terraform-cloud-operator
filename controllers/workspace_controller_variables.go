@@ -199,7 +199,7 @@ func (r *WorkspaceReconciler) getValueFrom(ctx context.Context, instance *appv1a
 }
 
 // getVariablesByCategory returns a map of all instance variables by type.
-func (r *WorkspaceReconciler) getVariablesByCategory(ctx context.Context, w *workspaceInstance, category tfc.CategoryType) map[string]tfc.Variable {
+func (r *WorkspaceReconciler) getVariablesByCategory(ctx context.Context, w *workspaceInstance, category tfc.CategoryType, shouldFail bool) (map[string]tfc.Variable, error) {
 	variables := make(map[string]tfc.Variable)
 	var instanceVariables []appv1alpha2.Variable
 	switch category {
@@ -210,7 +210,7 @@ func (r *WorkspaceReconciler) getVariablesByCategory(ctx context.Context, w *wor
 	}
 
 	if len(instanceVariables) == 0 {
-		return variables
+		return variables, nil
 	}
 
 	for _, v := range instanceVariables {
@@ -221,7 +221,11 @@ func (r *WorkspaceReconciler) getVariablesByCategory(ctx context.Context, w *wor
 			if err != nil {
 				w.log.Error(err, "Reconcile Variables", "msg", fmt.Sprintf("failed to get value for the variable %s", v.Name))
 				r.Recorder.Event(&w.instance, corev1.EventTypeWarning, "ReconcileVariables", "Failed to get value for a variable")
-				continue
+				if shouldFail {
+					return nil, err
+				} else {
+					continue
+				}
 			}
 		}
 		variables[v.Name] = tfc.Variable{
@@ -235,7 +239,7 @@ func (r *WorkspaceReconciler) getVariablesByCategory(ctx context.Context, w *wor
 
 	}
 
-	return variables
+	return variables, nil
 }
 
 // getWorkspaceVariablesByCategory returns a map of all workspace variables by type.
@@ -261,7 +265,7 @@ func getWorkspaceVariablesByCategory(workspaceVariables []*tfc.Variable, categor
 
 func (r *WorkspaceReconciler) reconcileVariablesByCategory(ctx context.Context, w *workspaceInstance, variables []*tfc.Variable, category tfc.CategoryType) error {
 	workspaceID := w.instance.Status.WorkspaceID
-	instanceVariables := r.getVariablesByCategory(ctx, w, category)
+	instanceVariables, _ := r.getVariablesByCategory(ctx, w, category, false)
 	workspaceVariables := getWorkspaceVariablesByCategory(variables, category)
 
 	daleteVariables := getVariablesToDelete(instanceVariables, workspaceVariables)
