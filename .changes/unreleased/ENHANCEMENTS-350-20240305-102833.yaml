@@ -1,0 +1,6 @@
+kind: ENHANCEMENTS
+body: '`Helm Chart`: Add new attributes `affinity` and `tolerations` to specify how
+  operator pods should be scheduled on nodes in a cluster.'
+time: 2024-03-05T10:28:33.761052+01:00
+custom:
+  PR: "350"
