@@ -159,6 +159,11 @@ spec:
                   `remote`. More information: - https://developer.hashicorp.com/terraform/cloud-docs/workspaces/settings#execution-mode'
                 pattern: ^(agent|local|remote)$
                 type: string
+              fileTriggersEnabled:
+                default: false
+                description: File triggers allow you to queue runs in Terraform Cloud
+                  when files in your VCS repository change.
+                type: boolean
               name:
                 description: Workspace name.
                 minLength: 1
@@ -577,6 +582,20 @@ spec:
                 required:
                 - secretKeyRef
                 type: object
+              triggerPatterns:
+                description: The list of pattern triggers that will queue runs in
+                  Terraform Cloud when files in your VCS repository change.
+                items:
+                  type: string
+                minItems: 1
+                type: array
+              triggerPrefixes:
+                description: The list of pattern prefixes that will queue runs in
+                  Terraform Cloud when files in your VCS repository change.
+                items:
+                  type: string
+                minItems: 1
+                type: array
               versionControl:
                 description: 'Settings for the workspace''s VCS repository, enabling
                   the UI/VCS-driven run workflow. Omit this argument to utilize the

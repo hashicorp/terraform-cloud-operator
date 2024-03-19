@@ -911,3 +911,66 @@ func TestValidateWorkspaceSpecProject(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateWorkspaceSpecFileTriggers(t *testing.T) {
+	t.Parallel()
+
+	successCases := map[string]Workspace{
+		"HasOnlyTriggerPatterns": {
+			Spec: WorkspaceSpec{
+				FileTriggersEnabled: true,
+				TriggerPatterns:     []string{"path/*/workspace/*"},
+			},
+		},
+		"HasOnlyTriggerPrefixes": {
+			Spec: WorkspaceSpec{
+				FileTriggersEnabled: true,
+				WorkingDirectory:    "path/",
+				TriggerPrefixes:     []string{"path/to/workspace/"},
+			},
+		},
+	}
+
+	for n, c := range successCases {
+		t.Run(n, func(t *testing.T) {
+			if errs := c.validateSpecFileTriggers(); len(errs) != 0 {
+				t.Errorf("Unexpected validation errors: %v", errs)
+			}
+		})
+	}
+
+	errorCases := map[string]Workspace{
+		"TriggerPrefixesWithoutWorkingDirectory": {
+			Spec: WorkspaceSpec{
+				FileTriggersEnabled: true,
+				TriggerPrefixes:     []string{"path/to/workspace/"},
+			},
+		},
+		"BothTriggerOptions": {
+			Spec: WorkspaceSpec{
+				FileTriggersEnabled: true,
+				WorkingDirectory:    "path/",
+				TriggerPatterns:     []string{"path/*/workspace/*"},
+				TriggerPrefixes:     []string{"path/to/workspace/"},
+			},
+		},
+		"TriggerPatternsWithoutFileTriggersEnabled": {
+			Spec: WorkspaceSpec{
+				TriggerPatterns: []string{"path/*/workspace/*"},
+			},
+		},
+		"TriggerPrefixesWithoutFileTriggersEnabled": {
+			Spec: WorkspaceSpec{
+				TriggerPrefixes: []string{"path/to/workspace/"},
+			},
+		},
+	}
+
+	for n, c := range errorCases {
+		t.Run(n, func(t *testing.T) {
+			if errs := c.validateSpecFileTriggers(); len(errs) == 0 {
+				t.Error("Unexpected failure, at least one error is expected")
+			}
+		})
+	}
+}
