@@ -4,6 +4,32 @@
 # -- Reference to one or more secrets essential for pulling container images.
 imagePullSecrets: []
 
+# Usage example:
+# affinity:
+#   nodeAffinity:
+#     requiredDuringSchedulingIgnoredDuringExecution:
+#       nodeSelectorTerms:
+#       - matchExpressions:
+#         - key: kubernetes.io/arch
+#           operator: In
+#           values:
+#         - amd64
+#
+# -- Kubernetes Affinity.
+# More information: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+affinity: {}
+
+# Usage example:
+# tolerations:
+# - key: "kubernetes.azure.com/scalesetpriority"
+#   operator: "Equal"
+#   value: "spot"
+#   effect: "NoSchedule"
+#
+# -- Kubernetes Tolerations.
+# More information: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+tolerations: {}
+
 # -- The number of Terraform Cloud Operator replicas.
 replicaCount: 2
 

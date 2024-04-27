@@ -128,6 +128,7 @@ For a more detailed explanation, please refer to the [FAQ](../../docs/faq.md#gen
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| affinity | object | `{}` | Kubernetes Affinity. More information: https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity |
 | controllers.agentPool.workers | int | `1` | The number of the Agent Pool controller workers. |
 | controllers.module.workers | int | `1` | The number of the Module controller workers. |
 | controllers.project.workers | int | `1` | The number of the Project controller workers. |
@@ -154,3 +155,4 @@ For a more detailed explanation, please refer to the [FAQ](../../docs/faq.md#gen
 | operator.tfeAddress | string | `""` | The API URL of a Terraform Enterprise instance. |
 | operator.watchedNamespaces | list | `[]` | List of namespaces the controllers should watch. |
 | replicaCount | int | `2` | The number of Terraform Cloud Operator replicas. |
+| tolerations | object | `{}` | Kubernetes Tolerations. More information: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/ |
