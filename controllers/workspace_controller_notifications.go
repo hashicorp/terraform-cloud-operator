@@ -52,14 +52,21 @@ func (r *WorkspaceReconciler) getOrgMembers(ctx context.Context, w *workspaceIns
 			e = append(e, ne)
 		}
 	}
-	members, err := w.tfClient.Client.OrganizationMemberships.List(ctx, w.instance.Spec.Organization, &tfc.OrganizationMembershipListOptions{
+	listOpts := &tfc.OrganizationMembershipListOptions{
 		Emails: e,
-	})
-	if err != nil {
-		return nil, err
 	}
-	for _, m := range members.Items {
-		eu[m.Email] = &tfc.User{ID: m.User.ID}
+	for {
+		members, err := w.tfClient.Client.OrganizationMemberships.List(ctx, w.instance.Spec.Organization, listOpts)
+		if err != nil {
+			return nil, err
+		}
+		for _, m := range members.Items {
+			eu[m.Email] = &tfc.User{ID: m.User.ID}
+		}
+		if members.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = members.NextPage
 	}
 	return eu, nil
 }
@@ -103,25 +110,31 @@ func (r *WorkspaceReconciler) getInstanceNotifications(ctx context.Context, w *w
 }
 
 func (r *WorkspaceReconciler) getWorkspaceNotifications(ctx context.Context, w *workspaceInstance) ([]tfc.NotificationConfiguration, error) {
-	wn, err := w.tfClient.Client.NotificationConfigurations.List(ctx, w.instance.Status.WorkspaceID, &tfc.NotificationConfigurationListOptions{})
-	if err != nil {
-		return []tfc.NotificationConfiguration{}, err
-	}
+	var o []tfc.NotificationConfiguration
 
-	o := make([]tfc.NotificationConfiguration, len(wn.Items))
-
-	for i, n := range wn.Items {
-		o[i] = tfc.NotificationConfiguration{
-			ID:              n.ID,
-			Name:            n.Name,
-			DestinationType: n.DestinationType,
-			URL:             n.URL,
-			Enabled:         n.Enabled,
-			Token:           n.Token,
-			Triggers:        n.Triggers,
-			EmailAddresses:  n.EmailAddresses,
-			EmailUsers:      n.EmailUsers,
+	listOpts := &tfc.NotificationConfigurationListOptions{}
+	for {
+		wn, err := w.tfClient.Client.NotificationConfigurations.List(ctx, w.instance.Status.WorkspaceID, listOpts)
+		if err != nil {
+			return nil, err
 		}
+		for _, n := range wn.Items {
+			o = append(o, tfc.NotificationConfiguration{
+				ID:              n.ID,
+				Name:            n.Name,
+				DestinationType: n.DestinationType,
+				URL:             n.URL,
+				Enabled:         n.Enabled,
+				Token:           n.Token,
+				Triggers:        n.Triggers,
+				EmailAddresses:  n.EmailAddresses,
+				EmailUsers:      n.EmailUsers,
+			})
+		}
+		if wn.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = wn.NextPage
 	}
 
 	return o, nil

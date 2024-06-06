@@ -13,17 +13,23 @@ import (
 func (r *WorkspaceReconciler) getProjectIDByName(ctx context.Context, w *workspaceInstance) (string, error) {
 	projectName := w.instance.Spec.Project.Name
 
-	projectIDs, err := w.tfClient.Client.Projects.List(ctx, w.instance.Spec.Organization, &tfc.ProjectListOptions{
+	listOpts := &tfc.ProjectListOptions{
 		Name: projectName,
-	})
-	if err != nil {
-		return "", err
 	}
-
-	for _, p := range projectIDs.Items {
-		if p.Name == projectName {
-			return p.ID, nil
+	for {
+		projectIDs, err := w.tfClient.Client.Projects.List(ctx, w.instance.Spec.Organization, listOpts)
+		if err != nil {
+			return "", err
 		}
+		for _, p := range projectIDs.Items {
+			if p.Name == projectName {
+				return p.ID, nil
+			}
+		}
+		if projectIDs.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = projectIDs.NextPage
 	}
 
 	return "", fmt.Errorf("project ID not found for project name %q", projectName)

@@ -135,18 +135,27 @@ func deleteWorkspaceVariable(ctx context.Context, w *workspaceInstance, variable
 // getWorkspaceVariables returns a list of all variables associated with the workspace.
 func (r *WorkspaceReconciler) getWorkspaceVariables(ctx context.Context, w *workspaceInstance, workspace *tfc.Workspace) ([]*tfc.Variable, error) {
 	if workspace.Variables == nil {
-		return []*tfc.Variable{}, nil
+		return nil, nil
 	}
+	var o []*tfc.Variable
 
 	w.log.Info("Reconcile Variables", "msg", "getting workspace variables")
-	v, err := w.tfClient.Client.Variables.List(ctx, w.instance.Status.WorkspaceID, &tfc.VariableListOptions{})
-	if err != nil {
-		w.log.Error(err, "Reconcile Variables", "msg", "failed to get workspace variables")
-		return nil, err
+	listOpts := &tfc.VariableListOptions{}
+	for {
+		v, err := w.tfClient.Client.Variables.List(ctx, w.instance.Status.WorkspaceID, listOpts)
+		if err != nil {
+			w.log.Error(err, "Reconcile Variables", "msg", "failed to get workspace variables")
+			return nil, err
+		}
+		o = append(o, v.Items...)
+		if v.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = v.NextPage
 	}
 	w.log.Info("Reconcile Variables", "msg", "successfully got workspace variables")
 
-	return v.Items, nil
+	return o, nil
 }
 
 // getVariablesByCategory returns a map of all instance variables by type.

@@ -13,17 +13,23 @@ import (
 func (r *WorkspaceReconciler) getAgentPoolIDByName(ctx context.Context, w *workspaceInstance) (string, error) {
 	agentPoolName := w.instance.Spec.AgentPool.Name
 
-	agentPoolIDs, err := w.tfClient.Client.AgentPools.List(ctx, w.instance.Spec.Organization, &tfc.AgentPoolListOptions{
+	listOpts := &tfc.AgentPoolListOptions{
 		Query: agentPoolName,
-	})
-	if err != nil {
-		return "", err
 	}
-
-	for _, a := range agentPoolIDs.Items {
-		if a.Name == agentPoolName {
-			return a.ID, nil
+	for {
+		agentPoolIDs, err := w.tfClient.Client.AgentPools.List(ctx, w.instance.Spec.Organization, listOpts)
+		if err != nil {
+			return "", err
 		}
+		for _, a := range agentPoolIDs.Items {
+			if a.Name == agentPoolName {
+				return a.ID, nil
+			}
+		}
+		if agentPoolIDs.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = agentPoolIDs.NextPage
 	}
 
 	return "", fmt.Errorf("agent pool ID not found for agent pool name %q", agentPoolName)
