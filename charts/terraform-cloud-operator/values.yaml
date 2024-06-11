@@ -66,6 +66,8 @@ controllers:
   agentPool:
     # --  The number of the Agent Pool controller workers.
     workers: 1
+    # -- The minimum frequency at which watched Agent Pool resources are reconciled. Format: 5s, 1m, etc.
+    syncPeriod: 30s
   module:
     # -- The number of the Module controller workers.
     workers: 1
@@ -75,7 +77,7 @@ controllers:
   workspace:
     # -- The number of the Workspace controller workers.
     workers: 1
-    # -- The minimum frequency at which watched workspace resources are reconciled. Format: 5s, 1m, etc.
+    # -- The minimum frequency at which watched Workspace resources are reconciled. Format: 5s, 1m, etc.
     syncPeriod: 5m
 
 # -- Custom Certificate Authority bundle to validate API TLS certificates. Expects a path to a CRT file containing concatenated certificates.

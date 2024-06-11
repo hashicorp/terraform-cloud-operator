@@ -74,6 +74,8 @@
 
   The `--sync-period` is a global operator option that specifies the minimum frequency at which all watched resources of all controllers are reconciled at once.
 
+  The `--agent-pool-sync-period` is a `AgentPool` controller option that specifies the time interval for requeuing AgentPool resources, ensuring they will be reconciled. This time is set individually per resource and it helps avoid spike of the resources to reconcile.
+
   The `--workspace-sync-period` is a `Workspace` controller option that specifies the time interval for requeuing Workspace resources, ensuring they will be reconciled. This time is set individually per resource and it helps avoid spike of the resources to reconcile.
 
   The controller synchronization period should be aligned with the number of managed Customer Resources. If the period is too low and the number of managed resources is too high, you may observe slowness in synchronization.

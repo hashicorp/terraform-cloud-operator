@@ -65,6 +65,8 @@ func main() {
 	var agentPoolWorkers int
 	flag.IntVar(&agentPoolWorkers, "agent-pool-workers", 1,
 		"The number of the Agent Pool controller workers.")
+	flag.DurationVar(&controllers.AgentPoolSyncPeriod, "agent-pool-sync-period", 30*time.Second,
+		"The minimum frequency at which watched agent pool resources are reconciled. Format: 5s, 1m, etc.")
 	// MODULE CONTROLLER OPTIONS
 	var moduleWorkers int
 	flag.IntVar(&moduleWorkers, "module-workers", 1,
@@ -163,6 +165,7 @@ func main() {
 	}
 
 	setupLog.Info(fmt.Sprintf("Operator sync period: %s", syncPeriod))
+	setupLog.Info(fmt.Sprintf("Agent Pool sync period: %s", controllers.AgentPoolSyncPeriod))
 	setupLog.Info(fmt.Sprintf("Workspace sync period: %s", controllers.WorkspaceSyncPeriod))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), options)

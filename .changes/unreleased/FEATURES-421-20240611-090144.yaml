@@ -1,0 +1,5 @@
+kind: FEATURES
+body: '`AgentPool`: Add a new CLI option called `--agent-pool-sync-period` to set the time interval for re-queuing Agent Pool resources once they are successfully reconciled.'
+time: 2024-06-11T09:01:44.531021+02:00
+custom:
+    PR: "421"

@@ -1,0 +1,5 @@
+kind: FEATURES
+body: '`Helm`: Add a new value called `controllers.agentPool.syncPeriod` to set the CLI option `--agent-pool-sync-period`.'
+time: 2024-06-11T09:00:51.658637+02:00
+custom:
+    PR: "421"

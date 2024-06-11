@@ -135,10 +135,11 @@ For a more detailed explanation, please refer to the [FAQ](../../docs/faq.md#gen
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
+| controllers.agentPool.syncPeriod | string | `"30s"` | The minimum frequency at which watched Agent Pool resources are reconciled. Format: 5s, 1m, etc. |
 | controllers.agentPool.workers | int | `1` | The number of the Agent Pool controller workers. |
 | controllers.module.workers | int | `1` | The number of the Module controller workers. |
 | controllers.project.workers | int | `1` | The number of the Project controller workers. |
-| controllers.workspace.syncPeriod | string | `"5m"` | The minimum frequency at which watched workspace resources are reconciled. Format: 5s, 1m, etc. |
+| controllers.workspace.syncPeriod | string | `"5m"` | The minimum frequency at which watched Workspace resources are reconciled. Format: 5s, 1m, etc. |
 | controllers.workspace.workers | int | `1` | The number of the Workspace controller workers. |
 | customCAcertificates | string | `""` | Custom Certificate Authority bundle to validate API TLS certificates. Expects a path to a CRT file containing concatenated certificates. |
 | imagePullSecrets | list | `[]` | Reference to one or more secrets essential for pulling container images. |

@@ -8,5 +8,6 @@ import (
 )
 
 var (
+	AgentPoolSyncPeriod time.Duration
 	WorkspaceSyncPeriod time.Duration
 )

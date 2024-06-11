@@ -32,6 +32,7 @@ spec:
           args:
           - --sync-period={{ .Values.operator.syncPeriod }}
           - --agent-pool-workers={{ .Values.controllers.agentPool.workers }}
+          - --agent-pool-sync-period={{ .Values.controllers.agentPool.syncPeriod }}
           - --module-workers={{ .Values.controllers.module.workers }}
           - --project-workers={{ .Values.controllers.project.workers }}
           - --workspace-workers={{ .Values.controllers.workspace.workers }}
