@@ -47,7 +47,7 @@ kubeRbacProxy:
     # -- Image pull policy.
     pullPolicy: IfNotPresent
     # -- Image tag.
-    tag: v0.17.0
+    tag: v0.18.0
 
   resources:
     limits:

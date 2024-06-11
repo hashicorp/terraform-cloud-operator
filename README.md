@@ -51,7 +51,7 @@ Three simple commands to install the Operator:
 ```console
 $ helm repo add hashicorp https://helm.releases.hashicorp.com
 $ helm repo update
-$ helm install demo hashicorp/terraform-cloud-operator --wait --version 2.4.0
+$ helm install demo hashicorp/terraform-cloud-operator --wait --version 2.4.1
 ```
 
 More detailed information about the installation and available values can be found [here](./charts/terraform-cloud-operator/README.md).

@@ -1,34 +1,65 @@
 api:
-- 'api/**/*.go'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'api/**/*.go'
 
 controller:
-- 'controllers/*.go'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'controllers/*.go'
 
 crd:
-- 'config/crd/bases/*.yaml'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'config/crd/bases/*.yaml'
 
 dependencies:
-- 'go.mod'
-- 'go.sum'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'go.mod'
+      - 'go.sum'
 
 documentation:
-- any: ['*.md']
-  all: ['!CHANGELOG.md']
-- 'charts/**/*.md'
-- 'docs/*.md'
+- all:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '*.md'
+      - 'charts/**/*.md'
+      - 'docs/*.md'
+    - all-globs-to-all-files:
+      - '!CHANGELOG.md'
 
 github_actions:
-- '**/workflows/*.yaml'
-- '**/workflows/*.yml'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/workflows/*.yaml'
+      - '**/workflows/*.yml'
 
 golang:
-- '**/*.go'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*.go'
 
 helm-chart:
-- 'charts/**/*.yaml'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'charts/**/*.yaml'
 
 release:
-- 'version/VERSION'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'version/VERSION'
 
 test:
-- '**/*_test.go'
+- any:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '**/*_test.go'
