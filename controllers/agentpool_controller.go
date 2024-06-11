@@ -105,12 +105,12 @@ func (r *AgentPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ap.log.Info("Agent Pool Controller", "msg", "successfully reconcilied agent pool")
 	r.Recorder.Eventf(&ap.instance, corev1.EventTypeNormal, "ReconcileAgentPool", "Successfully reconcilied agent pool ID %s", ap.instance.Status.AgentPoolID)
 
-	requeueDuration := AgentPoolSyncPeriod
+	// Re-queue custom resource after the cool down period if applicable.
 	if t := ap.remainCoolDownSeconds(); t > 0 {
-		requeueDuration = time.Duration(t) * time.Second
+		return requeueAfter(time.Duration(t) * time.Second)
 	}
 
-	return requeueAfter(requeueDuration)
+	return requeueAfter(AgentPoolSyncPeriod)
 }
 
 // SetupWithManager sets up the controller with the Manager.
