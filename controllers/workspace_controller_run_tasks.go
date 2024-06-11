@@ -112,12 +112,19 @@ func (r *WorkspaceReconciler) getInstanceRunTasks(ctx context.Context, w *worksp
 
 	rl := make(map[string]string)
 	if hasRunTaskName(w) {
-		rt, err := w.tfClient.Client.RunTasks.List(ctx, w.instance.Spec.Organization, &tfc.RunTaskListOptions{})
-		if err != nil {
-			return o, err
-		}
-		for _, t := range rt.Items {
-			rl[t.Name] = t.ID
+		listOpts := &tfc.RunTaskListOptions{}
+		for {
+			rt, err := w.tfClient.Client.RunTasks.List(ctx, w.instance.Spec.Organization, listOpts)
+			if err != nil {
+				return o, err
+			}
+			for _, t := range rt.Items {
+				rl[t.Name] = t.ID
+			}
+			if rt.NextPage == 0 {
+				break
+			}
+			listOpts.PageNumber = rt.NextPage
 		}
 	}
 
@@ -139,18 +146,24 @@ func (r *WorkspaceReconciler) getInstanceRunTasks(ctx context.Context, w *worksp
 func (r *WorkspaceReconciler) getWorkspaceRunTasks(ctx context.Context, w *workspaceInstance) (map[string]*tfc.WorkspaceRunTask, error) {
 	o := map[string]*tfc.WorkspaceRunTask{}
 
-	wrt, err := w.tfClient.Client.WorkspaceRunTasks.List(ctx, w.instance.Status.WorkspaceID, &tfc.WorkspaceRunTaskListOptions{})
-	if err != nil {
-		return o, err
-	}
-
-	for _, rt := range wrt.Items {
-		o[rt.RunTask.ID] = &tfc.WorkspaceRunTask{
-			ID:               rt.ID,
-			EnforcementLevel: rt.EnforcementLevel,
-			Stage:            rt.Stage,
-			RunTask:          &tfc.RunTask{ID: rt.RunTask.ID},
+	listOpts := &tfc.WorkspaceRunTaskListOptions{}
+	for {
+		wrt, err := w.tfClient.Client.WorkspaceRunTasks.List(ctx, w.instance.Status.WorkspaceID, listOpts)
+		if err != nil {
+			return o, err
 		}
+		for _, rt := range wrt.Items {
+			o[rt.RunTask.ID] = &tfc.WorkspaceRunTask{
+				ID:               rt.ID,
+				EnforcementLevel: rt.EnforcementLevel,
+				Stage:            rt.Stage,
+				RunTask:          &tfc.RunTask{ID: rt.RunTask.ID},
+			}
+		}
+		if wrt.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = wrt.NextPage
 	}
 
 	return o, nil

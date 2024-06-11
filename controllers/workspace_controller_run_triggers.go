@@ -23,43 +23,39 @@ func (r *WorkspaceReconciler) getRunTriggersSources(ctx context.Context, w *work
 		}
 	}
 
-	if len(runTriggersNames) == 0 {
-		return runTriggersIDs, nil
-	}
-
-	// Get Workspace IDs for the Run Triggers that we passed by Name
-	workspaces, err := w.tfClient.Client.Workspaces.List(ctx, w.instance.Spec.Organization, &tfc.WorkspaceListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	workspacesID := make(map[string]string)
-	for _, ws := range workspaces.Items {
-		workspacesID[ws.Name] = ws.ID
-	}
-	for _, n := range runTriggersNames {
-		if id, ok := workspacesID[n]; ok {
-			runTriggersIDs[id] = ""
-		} else {
-			return nil, fmt.Errorf("cannot find ID for Workspace %s", n)
+	for _, workspaceName := range runTriggersNames {
+		ws, err := w.tfClient.Client.Workspaces.Read(ctx, w.instance.Spec.Organization, workspaceName)
+		if err == tfc.ErrResourceNotFound {
+			return nil, fmt.Errorf("cannot find ID for Workspace %s", workspaceName)
 		}
+		if err != nil {
+			return nil, err
+		}
+		runTriggersIDs[ws.ID] = ""
 	}
 
 	return runTriggersIDs, nil
 }
 
 func (r *WorkspaceReconciler) getRunTriggersWorkspace(ctx context.Context, w *workspaceInstance) (map[string]string, error) {
-	runTriggers, err := w.tfClient.Client.RunTriggers.List(ctx, w.instance.Status.WorkspaceID, &tfc.RunTriggerListOptions{
+	rrt := make(map[string]string)
+	listOpts := &tfc.RunTriggerListOptions{
 		RunTriggerType: tfc.RunTriggerInbound,
 		Include:        []tfc.RunTriggerIncludeOpt{tfc.RunTriggerSourceable},
-	})
-	if err != nil {
-		return nil, err
 	}
-	rrt := make(map[string]string)
-	for _, rt := range runTriggers.Items {
-		// Sourceable.ID is an ID of the sourceable Workspace
-		rrt[rt.Sourceable.ID] = rt.ID
+	for {
+		runTriggers, err := w.tfClient.Client.RunTriggers.List(ctx, w.instance.Status.WorkspaceID, listOpts)
+		if err != nil {
+			return nil, err
+		}
+		for _, rt := range runTriggers.Items {
+			// Sourceable.ID is an ID of the sourceable Workspace
+			rrt[rt.Sourceable.ID] = rt.ID
+		}
+		if runTriggers.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = runTriggers.NextPage
 	}
 
 	return rrt, nil

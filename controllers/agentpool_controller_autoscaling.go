@@ -18,20 +18,28 @@ import (
 	appv1alpha2 "github.com/hashicorp/terraform-cloud-operator/api/v1alpha2"
 )
 
-func computeRequiredAgentsForWorkspace(ctx context.Context, ap *agentPoolInstance, workspaceID string) (int, error) {
+func computeRequiredAgentsForWorkspace(ctx context.Context, ap *agentPoolInstance, workspaceID string) (agents int, err error) {
 	statuses := []string{
 		string(tfc.RunPlanQueued),
 		string(tfc.RunApplyQueued),
 		string(tfc.RunApplying),
 		string(tfc.RunPlanning),
 	}
-	runs, err := ap.tfClient.Client.Runs.List(ctx, workspaceID, &tfc.RunListOptions{
+	listOpts := &tfc.RunListOptions{
 		Status: strings.Join(statuses, ","),
-	})
-	if err != nil {
-		return 0, err
 	}
-	return len(runs.Items), nil
+	for {
+		runs, err := ap.tfClient.Client.Runs.List(ctx, workspaceID, listOpts)
+		if err != nil {
+			return 0, err
+		}
+		agents += len(runs.Items)
+		if runs.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = runs.NextPage
+	}
+	return
 }
 
 func getAllAgentPoolWorkspaceIDs(ctx context.Context, ap *agentPoolInstance) ([]string, error) {
@@ -80,30 +88,33 @@ func getTargetWorkspaceID(ctx context.Context, ap *agentPoolInstance, targetWork
 	if targetWorkspace.ID != "" {
 		return targetWorkspace.ID, nil
 	}
-	list, err := ap.tfClient.Client.Workspaces.List(ctx, ap.instance.Spec.Organization, &tfc.WorkspaceListOptions{
-		Search: targetWorkspace.Name,
-	})
+	ws, err := ap.tfClient.Client.Workspaces.Read(ctx, ap.instance.Spec.Organization, targetWorkspace.Name)
+	if err == tfc.ErrResourceNotFound {
+		return "", fmt.Errorf("no such workspace found %q", targetWorkspace.Name)
+	}
 	if err != nil {
 		return "", err
 	}
-	for _, w := range list.Items {
-		if w.Name == targetWorkspace.Name {
-			return w.ID, nil
-		}
-	}
-	return "", fmt.Errorf("no such workspace found %q", targetWorkspace.Name)
+	return ws.ID, nil
 }
 
 func getTargetWorkspaceIDsByWildcardName(ctx context.Context, ap *agentPoolInstance, targetWorkspace appv1alpha2.TargetWorkspace) ([]string, error) {
-	list, err := ap.tfClient.Client.Workspaces.List(ctx, ap.instance.Spec.Organization, &tfc.WorkspaceListOptions{
+	listOpts := &tfc.WorkspaceListOptions{
 		WildcardName: targetWorkspace.WildcardName,
-	})
-	if err != nil {
-		return []string{}, err
 	}
 	workspaceIDs := []string{}
-	for _, w := range list.Items {
-		workspaceIDs = append(workspaceIDs, w.ID)
+	for {
+		list, err := ap.tfClient.Client.Workspaces.List(ctx, ap.instance.Spec.Organization, listOpts)
+		if err != nil {
+			return []string{}, err
+		}
+		for _, w := range list.Items {
+			workspaceIDs = append(workspaceIDs, w.ID)
+		}
+		if list.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = list.NextPage
 	}
 	return workspaceIDs, nil
 }

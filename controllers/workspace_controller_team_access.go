@@ -76,13 +76,19 @@ func (r *WorkspaceReconciler) getInstanceTeamAccess(ctx context.Context, w *work
 func (r *WorkspaceReconciler) getWorkspaceTeamAccess(ctx context.Context, w *workspaceInstance) (map[string]*tfc.TeamAccess, error) {
 	o := map[string]*tfc.TeamAccess{}
 
-	t, err := w.tfClient.Client.TeamAccess.List(ctx, &tfc.TeamAccessListOptions{WorkspaceID: w.instance.Status.WorkspaceID})
-	if err != nil {
-		return o, err
-	}
-
-	for _, ta := range t.Items {
-		o[ta.Team.ID] = ta
+	listOpts := &tfc.TeamAccessListOptions{WorkspaceID: w.instance.Status.WorkspaceID}
+	for {
+		t, err := w.tfClient.Client.TeamAccess.List(ctx, listOpts)
+		if err != nil {
+			return o, err
+		}
+		for _, ta := range t.Items {
+			o[ta.Team.ID] = ta
+		}
+		if t.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = t.NextPage
 	}
 	return o, nil
 }
@@ -97,15 +103,21 @@ func (r *WorkspaceReconciler) getTeams(ctx context.Context, w *workspaceInstance
 		}
 	}
 
-	tl, err := w.tfClient.Client.Teams.List(ctx, w.instance.Spec.Organization, &tfc.TeamListOptions{
+	listOpts := &tfc.TeamListOptions{
 		Names: fTeams,
-	})
-	if err != nil {
-		return teams, err
 	}
-
-	for _, t := range tl.Items {
-		teams[t.Name] = t
+	for {
+		tl, err := w.tfClient.Client.Teams.List(ctx, w.instance.Spec.Organization, listOpts)
+		if err != nil {
+			return teams, err
+		}
+		for _, t := range tl.Items {
+			teams[t.Name] = t
+		}
+		if tl.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = tl.NextPage
 	}
 
 	return teams, nil

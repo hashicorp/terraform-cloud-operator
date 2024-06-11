@@ -1,0 +1,5 @@
+kind: BUG FIXES
+body: '`AgentPool`: Fix an issue where calls to paginated API endpoints were only fetching the first page of results.'
+time: 2024-06-06T18:47:49.567157973-05:00
+custom:
+    PR: "426"

@@ -13,16 +13,22 @@ import (
 )
 
 func (r *WorkspaceReconciler) getWorkspaces(ctx context.Context, w *workspaceInstance) (map[string]string, error) {
-	ws, err := w.tfClient.Client.Workspaces.List(ctx, w.instance.Spec.Organization, &tfc.WorkspaceListOptions{})
-	if err != nil {
-		return map[string]string{}, err
-	}
-
 	o := make(map[string]string)
 
-	for _, w := range ws.Items {
-		o[w.ID] = w.ID
-		o[w.Name] = w.ID
+	listOpts := &tfc.WorkspaceListOptions{}
+	for {
+		ws, err := w.tfClient.Client.Workspaces.List(ctx, w.instance.Spec.Organization, listOpts)
+		if err != nil {
+			return map[string]string{}, err
+		}
+		for _, w := range ws.Items {
+			o[w.ID] = w.ID
+			o[w.Name] = w.ID
+		}
+		if ws.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = ws.NextPage
 	}
 
 	return o, nil

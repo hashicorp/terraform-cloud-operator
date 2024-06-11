@@ -13,15 +13,21 @@ import (
 func (r *WorkspaceReconciler) getSSHKeyIDByName(ctx context.Context, w *workspaceInstance) (string, error) {
 	SSHKeyName := w.instance.Spec.SSHKey.Name
 
-	SSHKeys, err := w.tfClient.Client.SSHKeys.List(ctx, w.instance.Spec.Organization, &tfc.SSHKeyListOptions{})
-	if err != nil {
-		return "", err
-	}
-
-	for _, s := range SSHKeys.Items {
-		if s.Name == SSHKeyName {
-			return s.ID, nil
+	listOpts := &tfc.SSHKeyListOptions{}
+	for {
+		SSHKeys, err := w.tfClient.Client.SSHKeys.List(ctx, w.instance.Spec.Organization, listOpts)
+		if err != nil {
+			return "", err
 		}
+		for _, s := range SSHKeys.Items {
+			if s.Name == SSHKeyName {
+				return s.ID, nil
+			}
+		}
+		if SSHKeys.NextPage == 0 {
+			break
+		}
+		listOpts.PageNumber = SSHKeys.NextPage
 	}
 
 	return "", fmt.Errorf("ssh key ID was not found for ssh key name %q", SSHKeyName)
