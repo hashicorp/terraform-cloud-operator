@@ -1026,6 +1026,16 @@ func (in *WorkspaceSpec) DeepCopyInto(out *WorkspaceSpec) {
 			}
 		}
 	}
+	if in.TriggerPatterns != nil {
+		in, out := &in.TriggerPatterns, &out.TriggerPatterns
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.TriggerPrefixes != nil {
+		in, out := &in.TriggerPrefixes, &out.TriggerPrefixes
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.EnvironmentVariables != nil {
 		in, out := &in.EnvironmentVariables, &out.EnvironmentVariables
 		*out = make([]Variable, len(*in))
