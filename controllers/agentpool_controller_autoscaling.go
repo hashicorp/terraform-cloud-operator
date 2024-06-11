@@ -159,6 +159,18 @@ func (r *AgentPoolReconciler) scaleAgentDeployment(ctx context.Context, ap *agen
 	return r.Client.Update(ctx, &deployment)
 }
 
+// remainCoolDownSeconds returns the remaining seconds in the Cool Down stage.
+// A negative value indicates expired Cool Down.
+func (a *agentPoolInstance) remainCoolDownSeconds() int {
+	if s := a.instance.Status.AgentDeploymentAutoscalingStatus; s != nil && s.LastScalingEvent != nil {
+		lastScalingEventSeconds := int(time.Since(s.LastScalingEvent.Time).Seconds())
+		cooldownPeriodSeconds := int(*a.instance.Spec.AgentDeploymentAutoscaling.CooldownPeriodSeconds)
+		return cooldownPeriodSeconds - lastScalingEventSeconds
+	}
+
+	return -1
+}
+
 func (r *AgentPoolReconciler) reconcileAgentAutoscaling(ctx context.Context, ap *agentPoolInstance) error {
 	if ap.instance.Spec.AgentDeploymentAutoscaling == nil {
 		return nil
@@ -166,17 +178,9 @@ func (r *AgentPoolReconciler) reconcileAgentAutoscaling(ctx context.Context, ap 
 
 	ap.log.Info("Reconcile Agent Autoscaling", "msg", "new reconciliation event")
 
-	status := ap.instance.Status.AgentDeploymentAutoscalingStatus
-	if status != nil {
-		lastScalingEvent := status.LastScalingEvent
-		if lastScalingEvent != nil {
-			lastScalingEventSeconds := int(time.Since(lastScalingEvent.Time).Seconds())
-			cooldownPeriodSeconds := ap.instance.Spec.AgentDeploymentAutoscaling.CooldownPeriodSeconds
-			if lastScalingEventSeconds <= int(*cooldownPeriodSeconds) {
-				ap.log.Info("Reconcile Agent Autoscaling", "msg", "autoscaler is within the cooldown period, skipping")
-				return nil
-			}
-		}
+	if ap.remainCoolDownSeconds() > 0 {
+		ap.log.Info("Reconcile Agent Autoscaling", "msg", "autoscaler is within the cooldown period, skipping")
+		return nil
 	}
 
 	requiredAgents, err := computeRequiredAgents(ctx, ap)
