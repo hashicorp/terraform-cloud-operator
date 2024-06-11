@@ -80,3 +80,33 @@ controllers:
 
 # -- Custom Certificate Authority bundle to validate API TLS certificates. Expects a path to a CRT file containing concatenated certificates.
 customCAcertificates: ""
+
+# -- Default agent pool configuration.
+defaultAgentPool:
+  # -- Whether or not the default agent pool is enabled.
+  enabled: false
+  # -- The name of the default agent pool.
+  name: ""
+  # -- The namespace of the default agent pool.
+  namespace: ""
+  # -- The organization associated with the default agent pool.
+  organization: kubernetes-operator
+  token:
+    # -- Reference to the secret key for the default agent pool token.
+    secretKeyRef:
+      # -- The name of the secret that contains the default agent pool token.
+      name: tfc-operator
+      # -- The key within the secret that contains the default agent pool token.
+      key: token
+  # -- List of agent tokens.
+  agentTokens:
+    - name: default
+  # -- Whether or not the default agent pool is enabled.
+  agentDeployment:
+    # -- The number of replicas for the agent deployment.
+    replicas: 3
+    spec:
+      containers:
+        - name: tfc-agent
+          # -- The image for the agent container.
+          image: hashicorp/tfc-agent:latest

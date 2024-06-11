@@ -1,0 +1,31 @@
+{{- /*
+    # Copyright (c) HashiCorp, Inc.
+    # SPDX-License-Identifier: MPL-2.0
+    */ -}}
+    
+{{- if .Values.defaultAgentPool.enabled }}
+apiVersion: app.terraform.io/v1alpha2
+kind: AgentPool
+metadata:
+  name: {{ if .Values.defaultAgentPool.name }}{{ .Values.defaultAgentPool.name }}{{ else }}default{{ end }}
+  namespace: {{ if .Values.defaultAgentPool.namespace }}{{ .Values.defaultAgentPool.namespace }}{{ else }}{{ .Release.Namespace }}{{ end }}
+spec:
+  organization: {{ .Values.defaultAgentPool.organization }}
+  name: agent-pool-demo
+  agentTokens:
+    {{- range .Values.defaultAgentPool.agentTokens }}
+      - name: {{ .name }}
+    {{- end }}
+  token:
+    secretKeyRef: 
+      name: {{ .Values.defaultAgentPool.token.secretKeyRef.name }}
+      key: {{ .Values.defaultAgentPool.token.secretKeyRef.key }}
+  agentDeployment:
+    replicas: {{ .Values.defaultAgentPool.agentDeployment.replicas }}
+    spec:
+      containers:
+        {{- range .Values.defaultAgentPool.agentDeployment.spec.containers }}
+          - name: {{ .name }}
+            image: {{ .image }}
+        {{- end }}
+{{- end }}
