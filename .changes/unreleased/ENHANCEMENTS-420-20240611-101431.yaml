@@ -1,5 +1,5 @@
 kind: ENHANCEMENTS
-body: '`AgentPool`: Update reconciliation logic to reduce the number of API calls. The controller will now reconcile custom resources after the cool down period if applicable, otherwise, the default timer is applied.'
+body: '`AgentPool`: Update reconciliation logic to reduce the number of API calls. The controller now reconciles custom resources after the cooldown period if applicable; otherwise, the default timer is applied.'
 time: 2024-06-11T10:14:31.124169+02:00
 custom:
     PR: "420"
