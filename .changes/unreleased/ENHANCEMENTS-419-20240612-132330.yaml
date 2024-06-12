@@ -1,0 +1,5 @@
+kind: ENHANCEMENTS
+body: '`AgentPool`: The agent auroscaling logic has been updated to decrease the frequency of API calls. The controller now utilizes the List Workspaces API call with filtering based on the current run status, thereby reducing the total number of API calls needed.'
+time: 2024-06-12T13:23:30.219348+02:00
+custom:
+    PR: "419"
