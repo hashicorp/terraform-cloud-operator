@@ -43,8 +43,7 @@ type agentPoolInstance struct {
 	tfClient HCPTerraformClient
 }
 
-// agentPoolSyncPeriodSeconds is how frequently the AgentPool controller should reconcile
-const agentPoolSyncPeriodSeconds = 30
+const AgentPoolSyncPeriod = 30 * time.Second
 
 //+kubebuilder:rbac:groups=app.terraform.io,resources=agentpools,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=app.terraform.io,resources=agentpools/status,verbs=get;update;patch
@@ -106,7 +105,12 @@ func (r *AgentPoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	ap.log.Info("Agent Pool Controller", "msg", "successfully reconcilied agent pool")
 	r.Recorder.Eventf(&ap.instance, corev1.EventTypeNormal, "ReconcileAgentPool", "Successfully reconcilied agent pool ID %s", ap.instance.Status.AgentPoolID)
 
-	return requeueAfter(agentPoolSyncPeriodSeconds * time.Second)
+	// Re-queue custom resource after the cool down period if applicable.
+	if t := ap.remainCoolDownSeconds(); t > 0 {
+		return requeueAfter(time.Duration(t) * time.Second)
+	}
+
+	return requeueAfter(AgentPoolSyncPeriod)
 }
 
 // SetupWithManager sets up the controller with the Manager.
