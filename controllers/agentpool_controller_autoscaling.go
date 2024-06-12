@@ -12,115 +12,83 @@ import (
 	tfc "github.com/hashicorp/go-tfe"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	appv1alpha2 "github.com/hashicorp/terraform-cloud-operator/api/v1alpha2"
 )
 
-func computeRequiredAgentsForWorkspace(ctx context.Context, ap *agentPoolInstance, workspaceID string) (int, error) {
-	statuses := []string{
+func computeRequiredAgents(ctx context.Context, ap *agentPoolInstance) (int32, error) {
+	required := 0
+	runStatuses := strings.Join([]string{
 		string(tfc.RunPlanQueued),
 		string(tfc.RunApplyQueued),
 		string(tfc.RunApplying),
 		string(tfc.RunPlanning),
-	}
-	runs, err := ap.tfClient.Client.Runs.List(ctx, workspaceID, &tfc.RunListOptions{
-		Status: strings.Join(statuses, ","),
-	})
-	if err != nil {
-		return 0, err
-	}
-	return len(runs.Items), nil
-}
+	}, ",")
+	workspaceNames := map[string]struct{}{}
+	workspaceIDs := map[string]struct{}{}
 
-func getAllAgentPoolWorkspaceIDs(ctx context.Context, ap *agentPoolInstance) ([]string, error) {
-	agentPool, err := ap.tfClient.Client.AgentPools.Read(ctx, ap.instance.Status.AgentPoolID)
-	if err != nil {
-		return []string{}, nil
-	}
-	ids := []string{}
-	for _, w := range agentPool.Workspaces {
-		ids = append(ids, w.ID)
-	}
-	return ids, nil
-}
-
-func getTargetWorkspaceIDs(ctx context.Context, ap *agentPoolInstance) ([]string, error) {
-	workspaces := ap.instance.Spec.AgentDeploymentAutoscaling.TargetWorkspaces
-	if workspaces == nil {
-		return getAllAgentPoolWorkspaceIDs(ctx, ap)
-	}
-	workspaceIDs := map[string]struct{}{} // NOTE: this is a map so we avoid duplicates when using wildcards
-	for _, w := range *workspaces {
-		if w.WildcardName != "" {
-			ids, err := getTargetWorkspaceIDsByWildcardName(ctx, ap, w)
-			if err != nil {
-				return []string{}, err
-			}
-			for _, id := range ids {
-				workspaceIDs[id] = struct{}{}
-			}
-			continue
-		}
-		id, err := getTargetWorkspaceID(ctx, ap, w)
-		if err != nil {
-			return []string{}, err
-		}
-		workspaceIDs[id] = struct{}{}
-	}
-	ids := []string{}
-	for v := range workspaceIDs {
-		ids = append(ids, v)
-	}
-	return ids, nil
-}
-
-func getTargetWorkspaceID(ctx context.Context, ap *agentPoolInstance, targetWorkspace appv1alpha2.TargetWorkspace) (string, error) {
-	if targetWorkspace.ID != "" {
-		return targetWorkspace.ID, nil
-	}
-	list, err := ap.tfClient.Client.Workspaces.List(ctx, ap.instance.Spec.Organization, &tfc.WorkspaceListOptions{
-		Search: targetWorkspace.Name,
-	})
-	if err != nil {
-		return "", err
-	}
-	for _, w := range list.Items {
-		if w.Name == targetWorkspace.Name {
-			return w.ID, nil
-		}
-	}
-	return "", fmt.Errorf("no such workspace found %q", targetWorkspace.Name)
-}
-
-func getTargetWorkspaceIDsByWildcardName(ctx context.Context, ap *agentPoolInstance, targetWorkspace appv1alpha2.TargetWorkspace) ([]string, error) {
-	list, err := ap.tfClient.Client.Workspaces.List(ctx, ap.instance.Spec.Organization, &tfc.WorkspaceListOptions{
-		WildcardName: targetWorkspace.WildcardName,
-	})
-	if err != nil {
-		return []string{}, err
-	}
-	workspaceIDs := []string{}
-	for _, w := range list.Items {
-		workspaceIDs = append(workspaceIDs, w.ID)
-	}
-	return workspaceIDs, nil
-}
-
-func computeRequiredAgents(ctx context.Context, ap *agentPoolInstance) (int32, error) {
-	required := 0
-	workspaceIDs, err := getTargetWorkspaceIDs(ctx, ap)
-	if err != nil {
-		return 0, err
-	}
-	for _, workspaceID := range workspaceIDs {
-		r, err := computeRequiredAgentsForWorkspace(ctx, ap, workspaceID)
+	pageNumber := 1
+	for {
+		workspaceList, err := ap.tfClient.Client.Workspaces.List(ctx, ap.instance.Spec.Organization, &tfc.WorkspaceListOptions{
+			CurrentRunStatus: runStatuses,
+			ListOptions: tfc.ListOptions{
+				PageSize:   maxPageSize,
+				PageNumber: pageNumber,
+			},
+		})
 		if err != nil {
 			return 0, err
 		}
-		required += r
+		for _, ws := range workspaceList.Items {
+			if ws.AgentPool.ID == ap.instance.Status.AgentPoolID {
+				workspaceNames[ws.Name] = struct{}{}
+				workspaceIDs[ws.ID] = struct{}{}
+			}
+		}
+		if workspaceList.NextPage == 0 {
+			break
+		}
+		pageNumber = workspaceList.NextPage
 	}
+
+	if ap.instance.Spec.AgentDeploymentAutoscaling.TargetWorkspaces == nil {
+		return int32(len(workspaceNames)), nil
+	}
+
+	for _, t := range *ap.instance.Spec.AgentDeploymentAutoscaling.TargetWorkspaces {
+		switch {
+		case t.Name != "":
+			if _, ok := workspaceNames[t.Name]; ok {
+				required++
+			}
+		case t.ID != "":
+			if _, ok := workspaceIDs[t.ID]; ok {
+				required++
+			}
+		case t.WildcardName != "":
+			prefix := strings.HasPrefix(t.WildcardName, "*")
+			suffix := strings.HasSuffix(t.WildcardName, "*")
+			wn := strings.Trim(t.WildcardName, "*")
+			for w := range workspaceNames {
+				match := false
+				switch {
+				case prefix && suffix:
+					match = strings.Contains(w, wn)
+				case prefix:
+					match = strings.HasPrefix(w, wn)
+				case suffix:
+					match = strings.HasSuffix(w, wn)
+				}
+				if match {
+					required++
+					delete(workspaceNames, w)
+				}
+			}
+		}
+	}
+
 	return int32(required), nil
 }
 
@@ -166,16 +134,12 @@ func (r *AgentPoolReconciler) reconcileAgentAutoscaling(ctx context.Context, ap 
 
 	ap.log.Info("Reconcile Agent Autoscaling", "msg", "new reconciliation event")
 
-	status := ap.instance.Status.AgentDeploymentAutoscalingStatus
-	if status != nil {
-		lastScalingEvent := status.LastScalingEvent
-		if lastScalingEvent != nil {
-			lastScalingEventSeconds := int(time.Since(lastScalingEvent.Time).Seconds())
-			cooldownPeriodSeconds := ap.instance.Spec.AgentDeploymentAutoscaling.CooldownPeriodSeconds
-			if lastScalingEventSeconds <= int(*cooldownPeriodSeconds) {
-				ap.log.Info("Reconcile Agent Autoscaling", "msg", "autoscaler is within the cooldown period, skipping")
-				return nil
-			}
+	if s := ap.instance.Status.AgentDeploymentAutoscalingStatus; s != nil && s.LastScalingEvent != nil {
+		lastScalingEventSeconds := int(time.Since(s.LastScalingEvent.Time).Seconds())
+		cooldownPeriodSeconds := int(*ap.instance.Spec.AgentDeploymentAutoscaling.CooldownPeriodSeconds)
+		if lastScalingEventSeconds <= cooldownPeriodSeconds {
+			ap.log.Info("Reconcile Agent Autoscaling", "msg", "autoscaler is within the cooldown period, skipping")
+			return nil
 		}
 	}
 
@@ -185,6 +149,7 @@ func (r *AgentPoolReconciler) reconcileAgentAutoscaling(ctx context.Context, ap 
 		r.Recorder.Eventf(&ap.instance, corev1.EventTypeWarning, "AutoscaleAgentPoolDeployment", "Autoscaling failed: %v", err.Error())
 		return err
 	}
+	ap.log.Info("Reconcile Agent Autoscaling", "msg", fmt.Sprintf("%d workspaces have pending runs", requiredAgents))
 
 	currentReplicas, err := r.getAgentDeploymentReplicas(ctx, ap)
 	if err != nil {
@@ -208,7 +173,7 @@ func (r *AgentPoolReconciler) reconcileAgentAutoscaling(ctx context.Context, ap 
 		}
 		ap.instance.Status.AgentDeploymentAutoscalingStatus = &appv1alpha2.AgentDeploymentAutoscalingStatus{
 			DesiredReplicas: &desiredReplicas,
-			LastScalingEvent: &v1.Time{
+			LastScalingEvent: &metav1.Time{
 				Time: time.Now(),
 			},
 		}

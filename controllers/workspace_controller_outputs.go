@@ -109,7 +109,7 @@ func (r *WorkspaceReconciler) setOutputs(ctx context.Context, w *workspaceInstan
 		Namespace: w.instance.Namespace,
 	}
 	labels := map[string]string{
-		"workspaceID":   w.instance.Status.WorkspaceID,
+		"workspaceID": w.instance.Status.WorkspaceID,
 	}
 
 	// update ConfigMap output
