@@ -71,8 +71,20 @@ func computeRequiredAgents(ctx context.Context, ap *agentPoolInstance) (int32, e
 				required++
 			}
 		case t.WildcardName != "":
-			prefix := strings.HasPrefix(t.WildcardName, "*")
-			suffix := strings.HasSuffix(t.WildcardName, "*")
+			// This is not a mistake here.
+			// Both 'prefix' and 'suffix' indicate whether a part of the name is in the prefix, suffix, or both.
+			// If the wildcard indicator '*' is in the suffix part, then search for a substring that is in the prefix.
+			// If the wildcard indicator '*' is in the prefix part, then search for a substring that is in the suffix.
+			// If the wildcard indicator '*' is in both the prefix and the suffix, then search for a substring that is in between '*'.
+			// For example:
+			// (1) 'hcp-terraform-workspace-*' -- the wildcard indicator '*' is at the end of the wildcard name (suffix),
+			// therefore, we should search for a workspace name that starts with the prefix 'hcp-terraform-workspace-'.
+			// (2) '*-terraform-workspace' -- the wildcard indicator '*' is at the beginning of the wildcard name (prefix),
+			// therefore, we should search for a workspace name that ends with the suffix '-terraform-workspace'.
+			// (3) '*-terraform-workspace-*' -- the wildcard indicator '*' is at the beginning and the end of the wildcard name (prefix and suffix),
+			// therefore, we should search for a workspace name containing the substring '-terraform-workspace-'.
+			prefix := strings.HasSuffix(t.WildcardName, "*")
+			suffix := strings.HasPrefix(t.WildcardName, "*")
 			wn := strings.Trim(t.WildcardName, "*")
 			for w := range workspaceNames {
 				match := false
