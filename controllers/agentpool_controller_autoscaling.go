@@ -172,13 +172,14 @@ func (r *AgentPoolReconciler) reconcileAgentAutoscaling(ctx context.Context, ap 
 		r.Recorder.Eventf(&ap.instance, corev1.EventTypeWarning, "AutoscaleAgentPoolDeployment", "Autoscaling failed: %v", err.Error())
 		return err
 	}
+	ap.log.Info("Reconcile Agent Autoscaling", "msg", fmt.Sprintf("%d agent replicas are running", currentReplicas))
 
 	minReplicas := *ap.instance.Spec.AgentDeploymentAutoscaling.MinReplicas
 	maxReplicas := *ap.instance.Spec.AgentDeploymentAutoscaling.MaxReplicas
 	desiredReplicas := computeDesiredReplicas(requiredAgents, minReplicas, maxReplicas)
 	if desiredReplicas != currentReplicas {
 		scalingEvent := fmt.Sprintf("Scaling agent deployment from %v to %v replicas", currentReplicas, desiredReplicas)
-		ap.log.Info("Reconcile Agent Autoscaling", "msg", scalingEvent)
+		ap.log.Info("Reconcile Agent Autoscaling", "msg", strings.ToLower(scalingEvent))
 		r.Recorder.Event(&ap.instance, corev1.EventTypeNormal, "AutoscaleAgentPoolDeployment", scalingEvent)
 		err := r.scaleAgentDeployment(ctx, ap, &desiredReplicas)
 		if err != nil {
