@@ -26,6 +26,8 @@ func computeRequiredAgents(ctx context.Context, ap *agentPoolInstance) (int32, e
 		string(tfc.RunApplying),
 		string(tfc.RunPlanning),
 	}, ",")
+	// NOTE:
+	// - Two maps are used here to simplify target workspace searching by ID, name, and wildcard.
 	workspaceNames := map[string]struct{}{}
 	workspaceIDs := map[string]struct{}{}
 
@@ -62,6 +64,7 @@ func computeRequiredAgents(ctx context.Context, ap *agentPoolInstance) (int32, e
 		case t.Name != "":
 			if _, ok := workspaceNames[t.Name]; ok {
 				required++
+				delete(workspaceNames, t.Name)
 			}
 		case t.ID != "":
 			if _, ok := workspaceIDs[t.ID]; ok {
