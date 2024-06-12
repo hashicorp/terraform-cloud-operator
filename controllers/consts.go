@@ -11,6 +11,7 @@ import (
 const (
 	annotationTrue  = "true"
 	annotationFalse = "false"
+	maxPageSize     = 100
 	requeueInterval = 15 * time.Second
 	runMessage      = "Triggered by HCP Terraform Operator"
 )
