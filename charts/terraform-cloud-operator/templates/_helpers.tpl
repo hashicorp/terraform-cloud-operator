@@ -54,9 +54,9 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Create the name of the service account to use
 */}}
 {{- define "terraform-cloud-operator.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "terraform-cloud-operator.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
-{{- end }}
+{{- if (and .Values.serviceAccount.create .Values.serviceAccount.name) -}}
+{{ .Values.serviceAccount.name }}
+{{- else -}}
+{{ .Release.Name }}-controller-manager
+{{- end -}}
+{{- end -}}
