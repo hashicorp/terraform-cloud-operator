@@ -7,6 +7,10 @@ imagePullSecrets: []
 # -- The number of Operator replicas.
 replicaCount: 2
 
+# -- Security Context to Deployment
+securityContext:
+  runAsNonRoot: true
+
 # Operator-global options.
 operator:
   image:
@@ -28,6 +32,15 @@ operator:
       # -- Guaranteed minimum amount of memory to be used by a container.
       memory: 64Mi
 
+  # -- Security Context to manager container
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
+
   # -- The minimum frequency at which watched resources are reconciled. Format: `5s`, `1m`, etc.
   syncPeriod: 5m
 
@@ -48,6 +61,15 @@ kubeRbacProxy:
     pullPolicy: IfNotPresent
     # -- Image tag.
     tag: v0.18.0
+
+  # -- Security Context to kube-rbac-proxy container
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    seccompProfile:
+      type: RuntimeDefault
 
   resources:
     limits:

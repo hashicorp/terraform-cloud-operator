@@ -70,7 +70,7 @@ spec:
           resources:
             {{- toYaml .Values.operator.resources | nindent 12 }}
           securityContext:
-            allowPrivilegeEscalation: false
+            {{- toYaml .Values.operator.securityContext | nindent 12 }}
           volumeMounts:
           {{- if .Values.customCAcertificates }}
           - name: ca-certificates
@@ -93,10 +93,10 @@ spec:
           resources:
             {{- toYaml .Values.kubeRbacProxy.resources | nindent 12 }}
           securityContext:
-            allowPrivilegeEscalation: false
+            {{- toYaml .Values.kubeRbacProxy.securityContext | nindent 12 }}
       serviceAccountName: {{ .Release.Name }}-controller-manager
       securityContext:
-        runAsNonRoot: true
+        {{- toYaml .Values.securityContext | nindent 12 }}
       terminationGracePeriodSeconds: 10
       volumes:
       - configMap:
