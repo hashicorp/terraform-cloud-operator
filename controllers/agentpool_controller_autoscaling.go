@@ -24,6 +24,7 @@ func computeRequiredAgentsForWorkspace(ctx context.Context, ap *agentPoolInstanc
 		string(tfc.RunApplyQueued),
 		string(tfc.RunApplying),
 		string(tfc.RunPlanning),
+		string(tfc.RunQueuing),
 	}
 	runs, err := ap.tfClient.Client.Runs.List(ctx, workspaceID, &tfc.RunListOptions{
 		Status: strings.Join(statuses, ","),
